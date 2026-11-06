@@ -1,0 +1,47 @@
+{
+    "timestamp": "2026-11-06T16:51:11.892877",
+    "source": "screen_1",
+    "game": "Free Fire",
+    "hp_bar": {
+        "level": 78,
+        "max": 200,
+        "percentage": 39.0,
+        "status": "LOW"
+    },
+    "ep_bar": {
+        "level": 0,
+        "max": 200,
+        "percentage": 0.0,
+        "status": "EMPTY"
+    },
+    "playername": {
+        "active": false,
+        "score": 0.0,
+        "value": "ecOm_resea... 28 29 30"
+    },
+    "eliminations": {
+        "count": 0,
+        "active": false,
+        "score": 0.0
+    },
+    "hp_level": 78,
+    "hp_max": 200,
+    "hp_percentage": 39.0,
+    "hp_status": "LOW",
+    "ep_level": 0,
+    "ep_max": 200,
+    "ep_percentage": 0.0,
+    "ep_status": "EMPTY",
+    "player_name_active": false,
+    "eliminations_count": 0,
+    "screen_stats": {
+        "fps": 12.7,
+        "latency_ms": 65.9,
+        "frame_w": 1920,
+        "frame_h": 1080,
+        "brightness": 30.4,
+        "motion_pct": 0.0,
+        "motion_status": "STATIC",
+        "tone": "Neutral"
+    }
+}
