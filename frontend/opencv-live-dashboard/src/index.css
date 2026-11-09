@@ -1,0 +1,86 @@
+:root {
+  --bg-primary: #0a0d14;
+  --bg-secondary: #101522;
+  --bg-card: rgba(18, 24, 38, 0.75);
+  --bg-card-hover: rgba(26, 35, 55, 0.85);
+  --border-color: rgba(255, 255, 255, 0.08);
+  --border-accent: rgba(0, 220, 255, 0.25);
+  
+  --text-main: #f0f4fc;
+  --text-muted: #8b9bb4;
+  --text-dim: #5a6882;
+
+  --accent-hp: #10b981;
+  --accent-hp-glow: rgba(16, 185, 129, 0.35);
+  --accent-hp-low: #f59e0b;
+  --accent-hp-crit: #ef4444;
+  --accent-hp-crit-glow: rgba(239, 68, 68, 0.45);
+  
+  --accent-ep: #f59e0b;
+  --accent-ep-glow: rgba(245, 158, 11, 0.35);
+
+  --accent-player: #06b6d4;
+  --accent-elim: #f43f5e;
+  --accent-event: #8b5cf6;
+
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Orbitron', monospace, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-sans);
+  background: var(--bg-primary);
+  background-image: 
+    radial-gradient(circle at 15% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 85% 80%, rgba(239, 68, 68, 0.06) 0%, transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.04) 0%, transparent 60%);
+  color: var(--text-main);
+  min-height: 100vh;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.85; filter: drop-shadow(0 0 12px var(--accent-hp-glow)); }
+  50% { opacity: 1; filter: drop-shadow(0 0 24px var(--accent-hp-glow)); }
+}
+
+@keyframes critFlash {
+  0%, 100% { background-color: rgba(239, 68, 68, 0.15); border-color: rgba(239, 68, 68, 0.8); }
+  50% { background-color: rgba(239, 68, 68, 0.35); border-color: rgba(239, 68, 68, 1); }
+}
+
+@keyframes livePulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}

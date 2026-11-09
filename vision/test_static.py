@@ -1,8 +1,7 @@
 """
 Static Screen HUD Telemetry Tester.
 Processes Free Fire screenshots or live stream frames, extracts real in-game
-metrics (Player Name, HP, Eliminations, Combat Events, Alive Count),
-and exports clean JSON data with zero raw coordinate clutter.
+metrics (Player Name, HP, Eliminations, Squad Roster), and exports clean JSON data.
 """
 
 import os
@@ -12,7 +11,6 @@ import time
 import cv2
 import numpy as np
 
-# Adjust path to find sibling modules
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 CAPTURE_DIR = os.path.join(PROJECT_ROOT, "capture")
@@ -34,7 +32,12 @@ def parse_args():
         "--image", "-i",
         type=str,
         default=None,
-        help="Path to screenshot image (e.g., screenshot.png). If omitted, defaults to uploaded screenshot or captures screen."
+        help="Path to screenshot image (e.g., screenshot.png). If omitted, defaults to uploaded screenshot."
+    )
+    parser.add_argument(
+        "--no-window",
+        action="store_true",
+        help="Do not open OpenCV GUI window."
     )
     return parser.parse_args()
 
@@ -93,7 +96,6 @@ def main():
     )
 
     hp_info = data.get("hp_bar", {})
-    ep_info = data.get("ep_bar", {})
     p_info = data.get("playername", {})
     e_info = data.get("eliminations", {})
 
@@ -101,36 +103,40 @@ def main():
     hp_pct = hp_info.get("percentage", 0.0)
     hp_stat = hp_info.get("status", "UNKNOWN")
 
-    ep_lvl = ep_info.get("level", 0)
-    ep_pct = ep_info.get("percentage", 0.0)
-    ep_stat = ep_info.get("status", "UNKNOWN")
-
-    p_val = p_info.get("value", "IDLE")
+    p_val = p_info.get("value", "STANDBY")
     p_act = p_info.get("active", False)
 
     e_cnt = e_info.get("count", 0)
     e_act = e_info.get("active", False)
 
-    # 4. Print Actual Game Data (No Coordinates!)
+    # 4. Print Actual Game Data
     print("\n" + "+" + "-" * 62 + "+")
     print("|                  EXTRACTED FREE FIRE MATCH DATA              |")
     print("+" + "-" * 62 + "+")
     print(f"|  HP BAR:               {hp_lvl:3d} / 200 ({hp_pct:.0f}%) [{hp_stat:<12}] |")
-    print(f"|  EP BAR:               {ep_lvl:3d} / 200 ({ep_pct:.0f}%) [{ep_stat:<12}] |")
     print(f"|  PLAYERNAME:           {p_val:<22} [{'ACTIVE' if p_act else 'IDLE':<8}] |")
     print(f"|  ELIMINATIONS:         {e_cnt:2d} Kills{' ' * 16} [{'ACTIVE' if e_act else 'IDLE':<8}] |")
     print("+" + "-" * 62 + "+")
+
+    if data.get("is_squad"):
+        team_name = data.get("team_name", "SQUAD")
+        team_kills = data.get("team_eliminations", 0)
+        print("\n" + "+" + "=" * 62 + "+")
+        print(f"|      SQUAD MODE ROSTER — TEAM: {team_name:<10} (TEAM KILLS: {team_kills})     |")
+        print("+" + "=" * 62 + "+")
+        for m in data.get("squad_members", []):
+            spec_tag = " [SPECTATING]" if m.get("is_spectated") else ""
+            print(f"| Slot #{m['slot']}: {m['name']:<18} | HP: {m['hp']:3d}/200 ({m['hp_percentage']:.0f}%) | Kills: {m['kills']:2d}{spec_tag:<14} |")
+        print("+" + "=" * 62 + "+")
     print(f"\n[+] Exported Clean JSON Data to: {OUTPUT_JSON_PATH}")
 
     # 5. Render HUD Overlay Badges with Actual Values
     annotated = frame.copy()
 
-    # Draw Player Info Badge
     p_badge = f"PLAYER: {p_val} | ELIM: {e_cnt}"
     cv2.rectangle(annotated, (int(w * 0.33), h - 90), (int(w * 0.67), h - 62), (30, 140, 255), -1)
     cv2.putText(annotated, p_badge, (int(w * 0.34), h - 70), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (10, 10, 10), 2, cv2.LINE_AA)
 
-    # Draw Bottom HP Bar Badge
     hp_badge = f"HP: {hp_lvl}/200 ({hp_pct:.0f}%) [{hp_stat}]"
     hp_color = (60, 220, 60) if hp_lvl >= 100 else (40, 60, 240)
     cv2.rectangle(annotated, (int(w * 0.33), h - 55), (int(w * 0.60), h - 28), hp_color, -1)
@@ -140,15 +146,19 @@ def main():
     cv2.imwrite(preview_path, annotated)
     print(f"[+] Saved visual preview to: {preview_path}")
 
-    # Display window
-    win_title = "Free Fire Live Telemetry - Press ANY KEY to close"
-    cv2.namedWindow(win_title, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(win_title, min(1280, w), min(720, h))
-    cv2.imshow(win_title, annotated)
-    print("Press any key in the OpenCV window to exit...")
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    if not args.no_window:
+        try:
+            win_title = "Free Fire Live Telemetry - Press ANY KEY to close"
+            cv2.namedWindow(win_title, cv2.WINDOW_NORMAL)
+            cv2.resizeWindow(win_title, min(1280, w), min(720, h))
+            cv2.imshow(win_title, annotated)
+            print("Press any key in the OpenCV window to exit...")
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
     main()
+

@@ -36,20 +36,20 @@ from telemetry_extractor import FreeFireSpectatorParser, export_telemetry_json
 
 WINDOW_NAME = "OpenCV Live Analytics - Free Fire Telemetry"
 
-# Target HUD regions configured for analysis
+# Target HUD regions configured for analysis (HP, Name, Elim, and Squad Table)
 DEFAULT_ROI_NAMES = [
     "hp_bar",
-    "ep_bar",
     "playername",
-    "eliminations"
+    "eliminations",
+    "squad_table"
 ]
 
 # Color schemes (BGR)
 COLOR_PALETTE = {
     "hp_bar": (70, 220, 70),        # Green
-    "ep_bar": (50, 200, 255),       # Yellow / Amber
     "playername": (255, 180, 50),   # Cyan / Light Blue
     "eliminations": (60, 60, 240),  # Red / Coral
+    "squad_table": (255, 200, 40),  # Sky blue / Gold
     "health_bar": (70, 220, 70),
     "player_name": (255, 180, 50),
     "kill_feed": (60, 60, 240),
@@ -258,11 +258,37 @@ def save_config(rois: Dict[str, Any], monitor_dict: Dict[str, Any]) -> None:
 def calibrate_rois(frame: np.ndarray, roi_names: list = None) -> Dict[str, Dict[str, int]]:
     """
     Interactive ROI selector using cv2.selectROI with safety bounds.
+    Supports 1-box Squad Mode or Solo Spectator Mode.
     """
-    if roi_names is None:
-        roi_names = DEFAULT_ROI_NAMES
-
     frame_h, frame_w = frame.shape[:2]
+
+    if roi_names is None:
+        print("\n" + "=" * 60)
+        print("          SELECT CALIBRATION TARGET MODE")
+        print("=" * 60)
+        print(" [1] SQUAD MODE (Recommended)")
+        print("     -> Draw ONLY 1 SINGLE BOX around the bottom-left squad roster!")
+        print("     -> Automatically extracts Team Name, Team Kills & all 4 Players")
+        print(" [2] SOLO / SPECTATOR MODE")
+        print("     -> Calibrate HP Bar, Player Name, and Eliminations (Center Banner)")
+        print(" [3] CUSTOM / ALL REGIONS")
+        print("=" * 60)
+
+        try:
+            mode_input = input("Enter mode [1 for Squad / 2 for Solo / 3 for All] (default=1): ").strip()
+        except Exception:
+            mode_input = "1"
+
+        if mode_input == "2":
+            roi_names = ["hp_bar", "playername", "eliminations"]
+        elif mode_input == "3":
+            roi_names = DEFAULT_ROI_NAMES
+        else:
+            # Squad mode: 2 distinct boxes as requested:
+            # Box 1: squad_header (Team Name & Total Eliminations top banner)
+            # Box 2: squad_roster (The 4 player cards ONLY)
+            roi_names = ["squad_header", "squad_roster"]
+
     print("\n" + "=" * 55)
     print("           HUD REGION CALIBRATION")
     print("=" * 55)
@@ -274,7 +300,22 @@ def calibrate_rois(frame: np.ndarray, roi_names: list = None) -> Dict[str, Dict[
 
     rois = {}
     for name in roi_names:
-        win_title = f"Calibrate: {name} (ESC to skip, ENTER to accept)"
+        if name == "squad_header":
+            prompt_hint = "BOX 1 - SQUAD HEADER: Drag box around Team Name & Total Kills (top banner)"
+        elif name == "squad_roster":
+            prompt_hint = "BOX 2 - SQUAD ROSTER: Drag box around ONLY the 4 player rows (1 to 4)"
+        elif name == "squad_table":
+            prompt_hint = "SQUAD TABLE: Drag box around entire squad roster"
+        elif name == "hp_bar":
+            prompt_hint = "HP BAR: Drag box around bottom-center health bar"
+        elif name == "playername":
+            prompt_hint = "PLAYER NAME: Drag box around spectator name banner"
+        elif name == "eliminations":
+            prompt_hint = "ELIMINATIONS: Drag box around spectator kill counter"
+        else:
+            prompt_hint = f"Region: {name}"
+
+        win_title = f"{prompt_hint} (ESC to skip, ENTER to accept)"
         cv2.namedWindow(win_title, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(win_title, min(1280, frame_w), min(720, frame_h))
 
@@ -405,7 +446,6 @@ class HUDOverlayRenderer:
 
             # Get structured data with flat fallbacks
             hp_info = telemetry_data.get("hp_bar", {})
-            ep_info = telemetry_data.get("ep_bar", {})
             p_info = telemetry_data.get("playername", {})
             e_info = telemetry_data.get("eliminations", {})
 
@@ -414,19 +454,18 @@ class HUDOverlayRenderer:
                 pct = hp_info.get("percentage", telemetry_data.get("hp_percentage", 0.0))
                 stat = hp_info.get("status", telemetry_data.get("hp_status", "UNKNOWN"))
                 label_text = f"HP: {lvl}/200 ({pct:.0f}%) [{stat}]"
-            elif "ep" in clean_name:
-                lvl = ep_info.get("level", telemetry_data.get("ep_level", 0))
-                pct = ep_info.get("percentage", telemetry_data.get("ep_percentage", 0.0))
-                stat = ep_info.get("status", telemetry_data.get("ep_status", "UNKNOWN"))
-                label_text = f"EP: {lvl}/200 ({pct:.0f}%) [{stat}]"
             elif "player" in clean_name or "name" in clean_name:
-                active = p_info.get("active", telemetry_data.get("player_name_active", False))
-                val = p_info.get("value", "DETECTED" if active else "IDLE")
+                val = p_info.get("value", "STANDBY")
                 label_text = f"PLAYER: {val}"
             elif "elim" in clean_name or "kill" in clean_name or "feed" in clean_name:
                 cnt = e_info.get("count", telemetry_data.get("eliminations_count", 0))
                 e_act = e_info.get("active", False)
                 label_text = f"ELIMINATIONS: {cnt} {'[ACTIVE]' if e_act else ''}"
+            elif "squad" in clean_name:
+                sq_cnt = len(telemetry_data.get("squad_members", []))
+                team_name = telemetry_data.get("team_name", "SQUAD")
+                team_kills = telemetry_data.get("team_eliminations", 0)
+                label_text = f"SQUAD: {team_name} | KILLS: {team_kills} ({sq_cnt} PLAYERS)"
             else:
                 label_text = name
 
@@ -470,25 +509,21 @@ class HUDOverlayRenderer:
 
         if self.hud_mode == 0:
             hp_info = telemetry_data.get("hp_bar", {})
-            ep_info = telemetry_data.get("ep_bar", {})
             p_info = telemetry_data.get("playername", {})
             e_info = telemetry_data.get("eliminations", {})
 
             hp_num = hp_info.get("level", telemetry_data.get("hp_level", 0))
             hp_pct = hp_info.get("percentage", telemetry_data.get("hp_percentage", 0.0))
-            ep_num = ep_info.get("level", telemetry_data.get("ep_level", 0))
-            p_val = p_info.get("value", "DETECTED" if telemetry_data.get("player_name_active") else "IDLE")
+            p_val = p_info.get("value", "STANDBY")
             elim_num = e_info.get("count", telemetry_data.get("eliminations_count", 0))
 
             hp_str = f"HP: {hp_num}/200 ({hp_pct:.0f}%)"
-            ep_str = f"EP: {ep_num}/200"
             p_str = f"PLAYER: {p_val}"
             elim_str = f"ELIM: {elim_num}"
 
-            cv2.putText(canvas, hp_str, (370, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.50, COLOR_PALETTE["accent_green"], 2, cv2.LINE_AA)
-            cv2.putText(canvas, ep_str, (560, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.50, COLOR_PALETTE["accent_yellow"], 2, cv2.LINE_AA)
-            cv2.putText(canvas, p_str, (720, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.50, COLOR_PALETTE["playername"], 1, cv2.LINE_AA)
-            cv2.putText(canvas, elim_str, (910, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.50, COLOR_PALETTE["eliminations"], 2, cv2.LINE_AA)
+            cv2.putText(canvas, hp_str, (400, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.55, COLOR_PALETTE["accent_green"], 2, cv2.LINE_AA)
+            cv2.putText(canvas, p_str, (620, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.55, COLOR_PALETTE["playername"], 2, cv2.LINE_AA)
+            cv2.putText(canvas, elim_str, (880, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.55, COLOR_PALETTE["eliminations"], 2, cv2.LINE_AA)
 
             # Bottom status banner
             bot_h = 28
@@ -643,21 +678,28 @@ def main():
             if args.no_window:
                 if now - last_print_time >= 0.4:
                     hp_info = telemetry_data.get("hp_bar", {})
-                    ep_info = telemetry_data.get("ep_bar", {})
                     p_info  = telemetry_data.get("playername", {})
                     e_info  = telemetry_data.get("eliminations", {})
 
                     hp     = hp_info.get("level", telemetry_data.get("hp_level", 0))
                     hp_pct = hp_info.get("percentage", telemetry_data.get("hp_percentage", 0.0))
-                    ep     = ep_info.get("level", telemetry_data.get("ep_level", 0))
-                    p_val  = p_info.get("value", "YES" if p_info.get("active") else "NO")
+                    p_val  = p_info.get("value", "STANDBY")
                     elim   = e_info.get("count", telemetry_data.get("eliminations_count", 0))
 
-                    print(
-                        f"\r[LIVE] HP:{hp:3d}/200({hp_pct:.0f}%) | EP:{ep:3d}/200 | "
-                        f"Player:{p_val:<8} | Elim:{elim:2d}",
-                        end="", flush=True
-                    )
+                    if telemetry_data.get("is_squad"):
+                        t_name = telemetry_data.get("team_name", "SQUAD")
+                        t_elim = telemetry_data.get("team_eliminations", 0)
+                        s_cnt = len(telemetry_data.get("squad_members", []))
+                        print(
+                            f"\r[SQUAD] {t_name} (TeamKills:{t_elim}) | Active:{p_val:<14} HP:{hp:3d}/200 | {s_cnt} Squad Members Active",
+                            end="", flush=True
+                        )
+                    else:
+                        print(
+                            f"\r[LIVE] HP:{hp:3d}/200({hp_pct:.0f}%) | "
+                            f"Player:{p_val:<16} | Elim:{elim:2d}",
+                            end="", flush=True
+                        )
                     last_print_time = now
                 time.sleep(0.01)
                 continue

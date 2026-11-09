@@ -31,3 +31,12 @@ if (-not $engine) {
 $result = AwaitTask ($engine.RecognizeAsync($bitmap)) ([Windows.Media.Ocr.OcrResult])
 
 Write-Host "OCR_TEXT:$($result.Text)"
+if ($result.Lines) {
+    foreach ($line in $result.Lines) {
+        Write-Host "OCR_LINE:$($line.Text)"
+        foreach ($w in $line.Words) {
+            $r = $w.BoundingRect
+            Write-Host "OCR_WORD:$([int]$r.X),$([int]$r.Y),$([int]$r.Width),$([int]$r.Height):$($w.Text)"
+        }
+    }
+}

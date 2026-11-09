@@ -1,47 +1,87 @@
 {
-    "timestamp": "2026-11-06T16:51:11.892877",
-    "source": "screen_1",
+    "timestamp": "2026-11-09T17:21:12.137030",
+    "source": "static_image",
     "game": "Free Fire",
     "hp_bar": {
-        "level": 78,
+        "level": 182,
         "max": 200,
-        "percentage": 39.0,
-        "status": "LOW"
-    },
-    "ep_bar": {
-        "level": 0,
-        "max": 200,
-        "percentage": 0.0,
-        "status": "EMPTY"
+        "percentage": 91.0,
+        "status": "HEALTHY"
     },
     "playername": {
-        "active": false,
+        "active": true,
         "score": 0.0,
-        "value": "ecOm_resea... 28 29 30"
+        "value": "ShokoWilRule"
     },
     "eliminations": {
-        "count": 0,
-        "active": false,
+        "count": 1,
+        "active": true,
         "score": 0.0
     },
-    "hp_level": 78,
+    "hp_level": 182,
     "hp_max": 200,
-    "hp_percentage": 39.0,
-    "hp_status": "LOW",
-    "ep_level": 0,
-    "ep_max": 200,
-    "ep_percentage": 0.0,
-    "ep_status": "EMPTY",
-    "player_name_active": false,
-    "eliminations_count": 0,
+    "hp_percentage": 91.0,
+    "hp_status": "HEALTHY",
+    "player_name_active": true,
+    "eliminations_count": 1,
+    "mode": "squad",
+    "is_squad": true,
+    "team_name": "TEAM",
+    "team_eliminations": 5,
+    "squad_members": [
+        {
+            "slot": 1,
+            "name": "Squad Member #1",
+            "hp": 200,
+            "max_hp": 200,
+            "hp_percentage": 100.0,
+            "kills": 1,
+            "kill_found": true,
+            "status": "HEALTHY",
+            "is_spectated": false
+        },
+        {
+            "slot": 2,
+            "name": "Squad Member #2",
+            "hp": 0,
+            "max_hp": 200,
+            "hp_percentage": 0.0,
+            "kills": 2,
+            "kill_found": true,
+            "status": "CRITICAL",
+            "is_spectated": false
+        },
+        {
+            "slot": 3,
+            "name": "Squad Member #3",
+            "hp": 0,
+            "max_hp": 200,
+            "hp_percentage": 0.0,
+            "kills": 2,
+            "kill_found": true,
+            "status": "CRITICAL",
+            "is_spectated": false
+        },
+        {
+            "slot": 4,
+            "name": "Squad Member #4",
+            "hp": 200,
+            "max_hp": 200,
+            "hp_percentage": 100.0,
+            "kills": 0,
+            "kill_found": true,
+            "status": "HEALTHY",
+            "is_spectated": false
+        }
+    ],
     "screen_stats": {
-        "fps": 12.7,
-        "latency_ms": 65.9,
-        "frame_w": 1920,
-        "frame_h": 1080,
-        "brightness": 30.4,
+        "fps": 0.4,
+        "latency_ms": 2790.9,
+        "frame_w": 1916,
+        "frame_h": 1042,
+        "brightness": 119.9,
         "motion_pct": 0.0,
         "motion_status": "STATIC",
-        "tone": "Neutral"
+        "tone": "Cool"
     }
 }

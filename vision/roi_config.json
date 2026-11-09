@@ -1,33 +1,21 @@
 {
-    "saved_at": "2026-11-06T16:48:10.056158",
+    "saved_at": "2026-11-09T17:16:01.571730",
     "monitor": {
-        "width": 1920,
-        "height": 1080
+        "width": 1917,
+        "height": 1078
     },
     "rois": {
-        "hp_bar": {
-            "x": 690,
-            "y": 967,
-            "width": 427,
-            "height": 24
+        "squad_header": {
+            "x": 92,
+            "y": 807,
+            "width": 251,
+            "height": 56
         },
-        "ep_bar": {
-            "x": 688,
-            "y": 949,
-            "width": 429,
-            "height": 17
-        },
-        "playername": {
-            "x": 692,
-            "y": 902,
-            "width": 326,
-            "height": 45
-        },
-        "eliminations": {
-            "x": 1082,
-            "y": 902,
-            "width": 35,
-            "height": 46
+        "squad_roster": {
+            "x": 0,
+            "y": 862,
+            "width": 344,
+            "height": 212
         }
     }
 }

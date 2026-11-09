@@ -1,0 +1,17 @@
+# Python & virtual environment
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+
+# Live analytics runtime dumps & debug snapshots
+recordings/snapshots/*.jpg
+recordings/snapshots/*.png
+recordings/snapshots/scaled_rois/
+!recordings/snapshots/.gitkeep
+
+# Frontend build & dependencies
+frontend/opencv-live-dashboard/node_modules/
+frontend/opencv-live-dashboard/dist/
+frontend/opencv-live-dashboard/.env.local
