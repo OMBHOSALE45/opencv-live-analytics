@@ -186,59 +186,21 @@ class WindowsHUDOCRWorker:
 
             os.makedirs(RECORDINGS_DIR, exist_ok=True)
 
-            # If banner is wide (covering both Name/Elim and HP bar):
-            # Split into top 60% (Name + Elim) and bottom 45% (HP digits)
-            if w > h * 1.8:
-                top = image_crop[:int(h * 0.60), :]
-                bot = image_crop[int(h * 0.40):, :]
+            enhanced = enhance_hud_for_ocr(image_crop)
+            scale = max(2.0, 1400 / float(enhanced.shape[1]))
+            scaled = cv2.resize(
+                enhanced,
+                (int(enhanced.shape[1] * scale), int(enhanced.shape[0] * scale)),
+                interpolation=cv2.INTER_CUBIC
+            )
+            cv2.imwrite(TMP_OCR_IMAGE, scaled)
 
-                # Enhance and scale top
-                top_enh = enhance_hud_for_ocr(top)
-                scale_top = max(1.5, 1400 / float(top_enh.shape[1]))
-                top_scaled = cv2.resize(
-                    top_enh,
-                    (int(top_enh.shape[1] * scale_top), int(top_enh.shape[0] * scale_top)),
-                    interpolation=cv2.INTER_CUBIC
-                )
-                cv2.imwrite(TMP_OCR_IMAGE, top_scaled)
-                res_top = subprocess.run(
-                    ["powershell", "-ExecutionPolicy", "Bypass", "-File", OCR_PS1_PATH, "-ImagePath", os.path.abspath(TMP_OCR_IMAGE)],
-                    capture_output=True, text=True, timeout=3.5
-                )
-                m_top = re.search(r"OCR_TEXT:(.*)", res_top.stdout.strip())
-                text_top = m_top.group(1).strip() if m_top else ""
-
-                # Bottom for HP
-                scale_bot = max(1.5, 1400 / float(bot.shape[1]))
-                bot_scaled = cv2.resize(
-                    bot,
-                    (int(bot.shape[1] * scale_bot), int(bot.shape[0] * scale_bot)),
-                    interpolation=cv2.INTER_CUBIC
-                )
-                cv2.imwrite(TMP_OCR_IMAGE, bot_scaled)
-                res_bot = subprocess.run(
-                    ["powershell", "-ExecutionPolicy", "Bypass", "-File", OCR_PS1_PATH, "-ImagePath", os.path.abspath(TMP_OCR_IMAGE)],
-                    capture_output=True, text=True, timeout=3.5
-                )
-                m_bot = re.search(r"OCR_TEXT:(.*)", res_bot.stdout.strip())
-                text_bot = m_bot.group(1).strip() if m_bot else ""
-
-                raw_text = f"{text_top} {text_bot}".strip()
-            else:
-                enhanced = enhance_hud_for_ocr(image_crop)
-                scale = max(2.0, 1400 / float(enhanced.shape[1]))
-                scaled = cv2.resize(
-                    enhanced,
-                    (int(enhanced.shape[1] * scale), int(enhanced.shape[0] * scale)),
-                    interpolation=cv2.INTER_CUBIC
-                )
-                cv2.imwrite(TMP_OCR_IMAGE, scaled)
-                res = subprocess.run(
-                    ["powershell", "-ExecutionPolicy", "Bypass", "-File", OCR_PS1_PATH, "-ImagePath", os.path.abspath(TMP_OCR_IMAGE)],
-                    capture_output=True, text=True, timeout=3.5
-                )
-                m = re.search(r"OCR_TEXT:(.*)", res.stdout.strip())
-                raw_text = m.group(1).strip() if m else ""
+            res = subprocess.run(
+                ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", OCR_PS1_PATH, "-ImagePath", os.path.abspath(TMP_OCR_IMAGE)],
+                capture_output=True, text=True, timeout=6.0
+            )
+            m = re.search(r"OCR_TEXT:(.*)", res.stdout.strip())
+            raw_text = m.group(1).strip() if m else ""
 
             if raw_text:
                 name, elim, hp = self.parse_ocr_text(raw_text)
@@ -250,9 +212,11 @@ class WindowsHUDOCRWorker:
                         self.latest_elim = elim
                     if hp is not None:
                         self.latest_hp = hp
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
+        except subprocess.TimeoutExpired:
+            # Gracefully handle timeout without printing traceback or blocking the stream
+            pass
+        except Exception:
+            pass
         finally:
             with self.lock:
                 self.is_busy = False
@@ -313,8 +277,8 @@ class WindowsHUDOCRWorker:
             cv2.imwrite(tmp_path, scaled)
 
             res = subprocess.run(
-                ["powershell", "-ExecutionPolicy", "Bypass", "-File", OCR_PS1_PATH, "-ImagePath", os.path.abspath(tmp_path)],
-                capture_output=True, text=True, timeout=8.0
+                ["powershell", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", OCR_PS1_PATH, "-ImagePath", os.path.abspath(tmp_path)],
+                capture_output=True, text=True, timeout=12.0
             )
 
             lines = [l[len("OCR_LINE:"):].strip() for l in res.stdout.splitlines() if l.startswith("OCR_LINE:")]
@@ -481,9 +445,11 @@ class WindowsHUDOCRWorker:
                 for m in members:
                     if m["name"] and not m["name"].startswith("Squad Member"):
                         self.cached_squad_names[m["slot"]] = m["name"]
+        except subprocess.TimeoutExpired:
+            # Gracefully handle timeout without printing traceback
+            pass
         except Exception as e:
-            import traceback
-            traceback.print_exc()
+            pass
         finally:
             with self.lock:
                 self.squad_ocr_busy = False
