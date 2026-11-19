@@ -10,6 +10,7 @@ recordings/snapshots/*.jpg
 recordings/snapshots/*.png
 recordings/snapshots/scaled_rois/
 !recordings/snapshots/.gitkeep
+scratch_crops/
 
 # Frontend build & dependencies
 frontend/opencv-live-dashboard/node_modules/

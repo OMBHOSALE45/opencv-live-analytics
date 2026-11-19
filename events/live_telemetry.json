@@ -1,87 +1,72 @@
 {
-    "timestamp": "2026-11-10T17:33:07.433636",
-    "source": "screen_1",
-    "game": "Free Fire",
-    "hp_bar": {
-        "level": 200,
-        "max": 200,
-        "percentage": 100.0,
-        "status": "HEALTHY"
+  "timestamp": "2026-11-19T14:45:10.397606",
+  "mode": "squad",
+  "is_squad": true,
+  "team_name": "TEAM RAUNAK",
+  "team_eliminations": 2,
+  "squad_members": [
+    {
+      "slot": 1,
+      "name": "NBSNDB",
+      "hp": 166,
+      "max_hp": 200,
+      "hp_percentage": 83.0,
+      "kills": 2,
+      "status": "HEALTHY",
+      "is_spectated": true
     },
-    "playername": {
-        "active": true,
-        "score": 0.0,
-        "value": "turesea. Search Recycle Bin"
+    {
+      "slot": 2,
+      "name": "KARANRAJJ124",
+      "hp": 0,
+      "max_hp": 200,
+      "hp_percentage": 0.0,
+      "kills": 0,
+      "status": "DEAD",
+      "is_spectated": false
     },
-    "eliminations": {
-        "count": 0,
-        "active": false,
-        "score": 0.0
+    {
+      "slot": 3,
+      "name": "S0HILBHAl",
+      "hp": 76,
+      "max_hp": 200,
+      "hp_percentage": 38.0,
+      "kills": 0,
+      "status": "LOW",
+      "is_spectated": false
     },
-    "hp_level": 200,
-    "hp_max": 200,
-    "hp_percentage": 100.0,
-    "hp_status": "HEALTHY",
-    "player_name_active": true,
-    "eliminations_count": 0,
-    "mode": "squad",
-    "is_squad": true,
-    "team_name": "TEAM",
-    "team_eliminations": 0,
-    "squad_members": [
-        {
-            "slot": 1,
-            "name": "Squad Member #1",
-            "hp": 20,
-            "max_hp": 200,
-            "hp_percentage": 10.0,
-            "kills": 0,
-            "kill_found": true,
-            "status": "CRITICAL",
-            "is_spectated": false
-        },
-        {
-            "slot": 2,
-            "name": "Squad Member #2",
-            "hp": 100,
-            "max_hp": 200,
-            "hp_percentage": 50.0,
-            "kills": 0,
-            "kill_found": true,
-            "status": "LOW",
-            "is_spectated": false
-        },
-        {
-            "slot": 3,
-            "name": "Squad Member #3",
-            "hp": 40,
-            "max_hp": 200,
-            "hp_percentage": 20.0,
-            "kills": 0,
-            "kill_found": true,
-            "status": "CRITICAL",
-            "is_spectated": false
-        },
-        {
-            "slot": 4,
-            "name": "Squad Member #4",
-            "hp": 0,
-            "max_hp": 200,
-            "hp_percentage": 0.0,
-            "kills": 0,
-            "kill_found": true,
-            "status": "ELIMINATED",
-            "is_spectated": false
-        }
-    ],
-    "screen_stats": {
-        "fps": 9.5,
-        "latency_ms": 112.1,
-        "frame_w": 1920,
-        "frame_h": 1080,
-        "brightness": 117.3,
-        "motion_pct": 0.0,
-        "motion_status": "STATIC",
-        "tone": "Warm"
+    {
+      "slot": 4,
+      "name": "TURN6E4U5W9",
+      "hp": 200,
+      "max_hp": 200,
+      "hp_percentage": 100.0,
+      "kills": 0,
+      "status": "HEALTHY",
+      "is_spectated": false
     }
+  ],
+  "hp_bar": {
+    "level": 166,
+    "max": 200,
+    "percentage": 83.0,
+    "status": "HEALTHY"
+  },
+  "playername": {
+    "active": true,
+    "score": 0.0,
+    "value": "NBSNDB"
+  },
+  "eliminations": {
+    "count": 2,
+    "active": true,
+    "score": 0.0
+  },
+  "hp_level": 166,
+  "hp_max": 200,
+  "hp_percentage": 83.0,
+  "hp_status": "HEALTHY",
+  "player_name_active": true,
+  "eliminations_count": 2,
+  "source": "live_stream"
 }

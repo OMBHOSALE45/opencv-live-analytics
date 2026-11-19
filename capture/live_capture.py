@@ -36,20 +36,21 @@ from telemetry_extractor import FreeFireSpectatorParser, export_telemetry_json
 
 WINDOW_NAME = "OpenCV Live Analytics - Free Fire Telemetry"
 
-# Target HUD regions configured for analysis (HP, Name, Elim, and Squad Table)
+# Target HUD regions configured for analysis (Separate Names and Kills on Right Panel)
 DEFAULT_ROI_NAMES = [
-    "hp_bar",
-    "playername",
-    "eliminations",
-    "squad_table"
+    "player_names",
+    "player_kills"
 ]
 
 # Color schemes (BGR)
 COLOR_PALETTE = {
     "hp_bar": (70, 220, 70),        # Green
-    "playername": (255, 180, 50),   # Cyan / Light Blue
-    "eliminations": (60, 60, 240),  # Red / Coral
-    "squad_table": (255, 200, 40),  # Sky blue / Gold
+    "player_names": (255, 180, 50), # Cyan / Light Blue
+    "player_kills": (60, 60, 240),  # Red / Coral
+    "playername": (255, 180, 50),
+    "eliminations": (60, 60, 240),
+    "active_team_roster": (255, 200, 40), # Gold
+    "squad_table": (255, 200, 40),
     "health_bar": (70, 220, 70),
     "player_name": (255, 180, 50),
     "kill_feed": (60, 60, 240),
@@ -236,11 +237,12 @@ def load_config() -> Optional[Dict[str, Any]]:
     return None
 
 
-def save_config(rois: Dict[str, Any], monitor_dict: Dict[str, Any]) -> None:
-    """Saves configured ROIs to vision/roi_config.json."""
+def save_config(rois: Dict[str, Any], monitor_dict: Dict[str, Any], team_name: str = "DG") -> None:
+    """Saves configured ROIs and Authoritative Team Name to vision/roi_config.json."""
     os.makedirs(VISION_DIR, exist_ok=True)
     config = {
         "saved_at": datetime.now().isoformat(),
+        "team_name": team_name,
         "monitor": {
             "width": monitor_dict.get("width", 0),
             "height": monitor_dict.get("height", 0)
@@ -249,73 +251,51 @@ def save_config(rois: Dict[str, Any], monitor_dict: Dict[str, Any]) -> None:
     }
     with open(CONFIG_PATH, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=4)
-    print(f"[+] Configuration saved successfully to: {CONFIG_PATH}")
+    print(f"[+] Configuration saved successfully to: {CONFIG_PATH} (Team: {team_name})")
 
 
 # ---------------------------------------------------------
 # INTERACTIVE HUD CALIBRATION
 # ---------------------------------------------------------
-def calibrate_rois(frame: np.ndarray, roi_names: list = None) -> Dict[str, Dict[str, int]]:
+def calibrate_rois(frame: np.ndarray, default_team: str = "DG") -> Tuple[Dict[str, Dict[str, int]], str]:
     """
-    Interactive ROI selector using cv2.selectROI with safety bounds.
-    Supports 1-box Squad Mode or Solo Spectator Mode.
+    Spectator HUD Calibration (2 Selections):
+      1. Prompts for manual authoritative Team Name insertion.
+      2. AI Auto-detects 4 Squad HP bars on the left HUD (Zero manual calibration).
+      3. User plots Selection 1: Player Names on the right panel (Slots 1-4).
+      4. User plots Selection 2: Player Kills column on the right panel (Slots 1-4).
     """
     frame_h, frame_w = frame.shape[:2]
 
-    if roi_names is None:
-        print("\n" + "=" * 60)
-        print("          SELECT CALIBRATION TARGET MODE")
-        print("=" * 60)
-        print(" [1] SQUAD MODE (Recommended)")
-        print("     -> Draw ONLY 1 SINGLE BOX around the bottom-left squad roster!")
-        print("     -> Automatically extracts Team Name, Team Kills & all 4 Players")
-        print(" [2] SOLO / SPECTATOR MODE")
-        print("     -> Calibrate HP Bar, Player Name, and Eliminations (Center Banner)")
-        print(" [3] CUSTOM / ALL REGIONS")
-        print("=" * 60)
+    print("\n" + "=" * 60)
+    print("          1. TEAM CONFIGURATION")
+    print("=" * 60)
+    try:
+        t_input = input(f"Enter Team Name (e.g. DG, OG, HYDRA, TEAM KARAN) [Default: {default_team}]: ").strip()
+    except Exception:
+        t_input = ""
+    team_name = t_input.upper() if t_input else default_team
+    print(f"[+] Authoritative Team Name Set: {team_name}\n")
 
-        try:
-            mode_input = input("Enter mode [1 for Squad / 2 for Solo / 3 for All] (default=1): ").strip()
-        except Exception:
-            mode_input = "1"
+    print("=" * 60)
+    print("          2. HUD REGION SELECTION (2 TARGETS)")
+    print("=" * 60)
+    print(" [+] Left Health Bars: 100% AUTO-DETECTED BY AI (Standardized Background Masking).")
+    print(" Instructions:")
+    print("  - 1/2: Drag box around Player Names column on right panel (Slots 1-4).")
+    print("  - 2/2: Drag box around Player Kills column on right panel (Slots 1-4).")
+    print("  - Press ENTER or SPACE to confirm each box.")
+    print("  - Press ESC or 'c' to skip.")
+    print("-" * 60)
 
-        if mode_input == "2":
-            roi_names = ["hp_bar", "playername", "eliminations"]
-        elif mode_input == "3":
-            roi_names = DEFAULT_ROI_NAMES
-        else:
-            # Squad mode: 2 distinct boxes as requested:
-            # Box 1: squad_header (Team Name & Total Eliminations top banner)
-            # Box 2: squad_roster (The 4 player cards ONLY)
-            roi_names = ["squad_header", "squad_roster"]
-
-    print("\n" + "=" * 55)
-    print("           HUD REGION CALIBRATION")
-    print("=" * 55)
-    print("Instructions:")
-    print(" - Drag with your mouse to draw the bounding box.")
-    print(" - Press ENTER or SPACE to confirm.")
-    print(" - Press ESC or 'c' to skip the current region.")
-    print("-" * 55)
+    roi_targets = [
+        ("player_names", "1/2: Drag box around Player Names (Slots 1-4)"),
+        ("player_kills", "2/2: Drag box around Player Kills column (Slots 1-4)")
+    ]
 
     rois = {}
-    for name in roi_names:
-        if name == "squad_header":
-            prompt_hint = "BOX 1 - SQUAD HEADER: Drag box around Team Name & Total Kills (top banner)"
-        elif name == "squad_roster":
-            prompt_hint = "BOX 2 - SQUAD ROSTER: Drag box around ONLY the 4 player rows (1 to 4)"
-        elif name == "squad_table":
-            prompt_hint = "SQUAD TABLE: Drag box around entire squad roster"
-        elif name == "hp_bar":
-            prompt_hint = "HP BAR: Drag box around bottom-center health bar"
-        elif name == "playername":
-            prompt_hint = "PLAYER NAME: Drag box around spectator name banner"
-        elif name == "eliminations":
-            prompt_hint = "ELIMINATIONS: Drag box around spectator kill counter"
-        else:
-            prompt_hint = f"Region: {name}"
-
-        win_title = f"{prompt_hint} (ESC to skip, ENTER to accept)"
+    for name, prompt_hint in roi_targets:
+        win_title = f"{prompt_hint} [ENTER to Confirm, ESC to Skip]"
         cv2.namedWindow(win_title, cv2.WINDOW_NORMAL)
         cv2.resizeWindow(win_title, min(1280, frame_w), min(720, frame_h))
 
@@ -333,7 +313,7 @@ def calibrate_rois(frame: np.ndarray, roi_names: list = None) -> Dict[str, Dict[
         else:
             print(f" [-] Skipped {name}")
 
-    return rois
+    return rois, team_name
 
 
 # ---------------------------------------------------------
@@ -449,23 +429,21 @@ class HUDOverlayRenderer:
             p_info = telemetry_data.get("playername", {})
             e_info = telemetry_data.get("eliminations", {})
 
-            if "hp" in clean_name or "health" in clean_name:
+            if "kill" in clean_name or "elim" in clean_name:
+                team_kills = telemetry_data.get("team_eliminations", 0)
+                label_text = f"KILLS (Slots 1-4) | TOTAL: {team_kills}"
+            elif "name" in clean_name or "player" in clean_name:
+                label_text = "NAMES (Slots 1-4)"
+            elif "roster" in clean_name or "squad" in clean_name or "team" in clean_name:
+                sq_cnt = len(telemetry_data.get("squad_members", []))
+                team_name = telemetry_data.get("team_name", "SQUAD")
+                team_kills = telemetry_data.get("team_eliminations", 0)
+                label_text = f"ACTIVE TEAM: {team_name} | TEAM KILLS: {team_kills} ({sq_cnt} PLAYERS)"
+            elif "hp" in clean_name or "health" in clean_name:
                 lvl = hp_info.get("level", telemetry_data.get("hp_level", 0))
                 pct = hp_info.get("percentage", telemetry_data.get("hp_percentage", 0.0))
                 stat = hp_info.get("status", telemetry_data.get("hp_status", "UNKNOWN"))
                 label_text = f"HP: {lvl}/200 ({pct:.0f}%) [{stat}]"
-            elif "player" in clean_name or "name" in clean_name:
-                val = p_info.get("value", "STANDBY")
-                label_text = f"PLAYER: {val}"
-            elif "elim" in clean_name or "kill" in clean_name or "feed" in clean_name:
-                cnt = e_info.get("count", telemetry_data.get("eliminations_count", 0))
-                e_act = e_info.get("active", False)
-                label_text = f"ELIMINATIONS: {cnt} {'[ACTIVE]' if e_act else ''}"
-            elif "squad" in clean_name:
-                sq_cnt = len(telemetry_data.get("squad_members", []))
-                team_name = telemetry_data.get("team_name", "SQUAD")
-                team_kills = telemetry_data.get("team_eliminations", 0)
-                label_text = f"SQUAD: {team_name} | KILLS: {team_kills} ({sq_cnt} PLAYERS)"
             else:
                 label_text = name
 
@@ -579,27 +557,29 @@ def main():
     # 2. Configuration Management
     saved_config = load_config()
     rois = {}
+    team_name = "DG"
     # calib_resolution: the monitor resolution at which ROIs were originally drawn.
     # Used to auto-scale ROIs to whatever frame size is being captured right now.
     calib_resolution = {"width": monitor.get("width", 0), "height": monitor.get("height", 0)}
 
     if saved_config and "rois" in saved_config:
         saved_rois = saved_config["rois"]
+        team_name = saved_config.get("team_name", "DG")
         # Load the saved calibration resolution (may differ from current capture monitor)
         if "monitor" in saved_config and saved_config["monitor"].get("width", 0) > 0:
             calib_resolution = saved_config["monitor"]
-        print(f"[+] Loaded existing ROI configuration with {len(saved_rois)} region(s):")
+        print(f"[+] Loaded existing ROI configuration for Team '{team_name}' with {len(saved_rois)} region(s):")
         calib_w = calib_resolution.get("width", 0)
         calib_h = calib_resolution.get("height", 0)
         print(f"    (Calibrated at: {calib_w}x{calib_h} -> live frame: {monitor.get('width',0)}x{monitor.get('height',0)})")
         for r_name, r_box in saved_rois.items():
             print(f"    - {r_name}: {r_box['width']}x{r_box['height']} at ({r_box['x']}, {r_box['y']})")
 
-        choice = input("\nUse saved ROIs? [Y/n] (or 'r' to recalibrate): ").strip().lower()
+        choice = input(f"\nUse saved ROIs for Team '{team_name}'? [Y/n] (or 'r' to recalibrate): ").strip().lower()
         if choice == "r":
             initial_frame = static_frame if is_static_image else countdown_capture(sct, monitor, seconds=5)
-            rois = calibrate_rois(initial_frame)
-            save_config(rois, monitor)
+            rois, team_name = calibrate_rois(initial_frame, default_team=team_name)
+            save_config(rois, monitor, team_name=team_name)
             calib_resolution = {"width": initial_frame.shape[1], "height": initial_frame.shape[0]}
         elif choice == "n":
             print("[*] Starting without saved ROIs. (Press 'R' during stream to calibrate).")
@@ -610,8 +590,8 @@ def main():
         choice = input("\nNo saved ROI configuration found. Calibrate HUD regions now? [y/N]: ").strip().lower()
         if choice in ["y", "yes"]:
             initial_frame = static_frame if is_static_image else countdown_capture(sct, monitor, seconds=5)
-            rois = calibrate_rois(initial_frame)
-            save_config(rois, monitor)
+            rois, team_name = calibrate_rois(initial_frame, default_team="DG")
+            save_config(rois, monitor, team_name=team_name)
             calib_resolution = {"width": initial_frame.shape[1], "height": initial_frame.shape[0]}
         else:
             print("[*] Starting with full screen analysis. Press 'R' anytime to calibrate ROIs.")
@@ -725,12 +705,14 @@ def main():
             elif key in [ord("r"), ord("R")]:
                 print("\n[*] Recalibration requested...")
                 new_frame = countdown_capture(sct, monitor, seconds=5)
-                new_rois = calibrate_rois(new_frame)
+                new_rois, new_team_name = calibrate_rois(new_frame, default_team=team_name)
                 if new_rois:
+                    rois.clear()
                     rois.update(new_rois)
+                    team_name = new_team_name
                     # Update calibration resolution to match the recalibration frame
                     calib_resolution = {"width": new_frame.shape[1], "height": new_frame.shape[0]}
-                    save_config(rois, monitor)
+                    save_config(rois, monitor, team_name=team_name)
                 print("[*] Resuming live capture...")
 
             elif key in [ord("t"), ord("T")]:

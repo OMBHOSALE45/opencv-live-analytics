@@ -1,21 +1,22 @@
 {
-    "saved_at": "2026-11-09T17:16:01.571730",
+    "saved_at": "2026-11-19T14:31:54.625547",
+    "team_name": "TEAM RAUNAK",
     "monitor": {
-        "width": 1917,
-        "height": 1078
+        "width": 1188,
+        "height": 540
     },
     "rois": {
-        "squad_header": {
-            "x": 92,
-            "y": 807,
-            "width": 251,
-            "height": 56
+        "player_names": {
+            "x": 890,
+            "y": 207,
+            "width": 165,
+            "height": 140
         },
-        "squad_roster": {
-            "x": 0,
-            "y": 862,
-            "width": 344,
-            "height": 212
+        "player_kills": {
+            "x": 1078,
+            "y": 205,
+            "width": 31,
+            "height": 139
         }
     }
 }
